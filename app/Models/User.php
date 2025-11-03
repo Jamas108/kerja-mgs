@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Log;
 
 class User extends Authenticatable
 {
@@ -60,22 +61,42 @@ class User extends Authenticatable
 
     public function isAdmin()
     {
-        return $this->role->name === 'admin';
+        try {
+            return $this->role && $this->role->name === 'admin';
+        } catch (\Exception $e) {
+            Log::error('Error in isAdmin() method: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function isDirector()
     {
-        return $this->role->name === 'direktur';
+        try {
+            return $this->role && $this->role->name === 'direktur';
+        } catch (\Exception $e) {
+            Log::error('Error in isDirector() method: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function isDivisionHead()
     {
-        return $this->role->name === 'kepala divisi';
+        try {
+            return $this->role && $this->role->name === 'kepala divisi';
+        } catch (\Exception $e) {
+            Log::error('Error in isDivisionHead() method: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function isEmployee()
     {
-        return $this->role->name === 'karyawan';
+        try {
+            return $this->role && $this->role->name === 'karyawan';
+        } catch (\Exception $e) {
+            Log::error('Error in isEmployee() method: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -83,25 +104,34 @@ class User extends Authenticatable
      */
     public function getPerformanceScoreAttribute()
     {
-        $finalAssignments = $this->assignedJobs()
-            ->where('status', 'final')
-            ->get();
+        try {
+            $finalAssignments = $this->assignedJobs()
+                ->where('status', 'final')
+                ->get();
 
-        $totalAssignments = $finalAssignments->count();
+            $totalAssignments = $finalAssignments->count();
 
-        if ($totalAssignments === 0) {
+            if ($totalAssignments === 0) {
+                return null;
+            }
+
+            $totalScore = 0;
+
+            foreach ($finalAssignments as $assignment) {
+                // Ensure both ratings exist and are numeric
+                $kadivRating = is_numeric($assignment->kadiv_rating) ? $assignment->kadiv_rating : 0;
+                $directorRating = is_numeric($assignment->director_rating) ? $assignment->director_rating : 0;
+
+                // Rata-rata dari nilai kadiv dan director
+                $avgRating = ($kadivRating + $directorRating) / 2;
+                $totalScore += $avgRating;
+            }
+
+            return round($totalScore / $totalAssignments, 2);
+        } catch (\Exception $e) {
+            Log::error('Error in getPerformanceScoreAttribute(): ' . $e->getMessage());
             return null;
         }
-
-        $totalScore = 0;
-
-        foreach ($finalAssignments as $assignment) {
-            // Rata-rata dari nilai kadiv dan director
-            $avgRating = ($assignment->kadiv_rating + $assignment->director_rating) / 2;
-            $totalScore += $avgRating;
-        }
-
-        return round($totalScore / $totalAssignments, 2);
     }
 
     /**
@@ -109,22 +139,27 @@ class User extends Authenticatable
      */
     public function getPerformanceCategoryAttribute()
     {
-        $score = $this->performance_score;
+        try {
+            $score = $this->performance_score;
 
-        if ($score === null) {
-            return 'Belum Ada Penilaian';
-        }
+            if ($score === null) {
+                return 'Belum Ada Penilaian';
+            }
 
-        if ($score >= 3.7) {
-            return 'Sangat Baik';
-        } elseif ($score >= 3) {
-            return 'Baik';
-        } elseif ($score >= 2.5) {
-            return 'Cukup';
-        } elseif ($score >= 2) {
-            return 'Kurang';
-        } else {
-            return 'Sangat Kurang';
+            if ($score >= 3.7) {
+                return 'Sangat Baik';
+            } elseif ($score >= 3) {
+                return 'Baik';
+            } elseif ($score >= 2.5) {
+                return 'Cukup';
+            } elseif ($score >= 2) {
+                return 'Kurang';
+            } else {
+                return 'Sangat Kurang';
+            }
+        } catch (\Exception $e) {
+            Log::error('Error in getPerformanceCategoryAttribute(): ' . $e->getMessage());
+            return 'Tidak Tersedia';
         }
     }
 
@@ -133,9 +168,14 @@ class User extends Authenticatable
      */
     public function getAwardsCountAttribute()
     {
-        return $this->promotionRequests()
-            ->where('status', 'approved')
-            ->count();
+        try {
+            return $this->promotionRequests()
+                ->where('status', 'approved')
+                ->count();
+        } catch (\Exception $e) {
+            Log::error('Error in getAwardsCountAttribute(): ' . $e->getMessage());
+            return 0;
+        }
     }
 
     /**
@@ -143,9 +183,14 @@ class User extends Authenticatable
      */
     public function getAwardsAttribute()
     {
-        return $this->promotionRequests()
-            ->where('status', 'approved')
-            ->orderBy('reviewed_at', 'desc')
-            ->get();
+        try {
+            return $this->promotionRequests()
+                ->where('status', 'approved')
+                ->orderBy('reviewed_at', 'desc')
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error in getAwardsAttribute(): ' . $e->getMessage());
+            return collect();
+        }
     }
 }

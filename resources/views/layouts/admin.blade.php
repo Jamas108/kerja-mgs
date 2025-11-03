@@ -1116,7 +1116,7 @@
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-users"></i>
                             </span>
-                            <span class="sidebar-menu-text">Users</span>
+                            <span class="sidebar-menu-text">Pengguna</span>
                         </a>
                     </li>
 
@@ -1126,7 +1126,7 @@
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-building"></i>
                             </span>
-                            <span class="sidebar-menu-text">Divisions</span>
+                            <span class="sidebar-menu-text">Divisi</span>
                         </a>
                     </li>
 
@@ -1136,7 +1136,7 @@
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-user-tag"></i>
                             </span>
-                            <span class="sidebar-menu-text">Roles</span>
+                            <span class="sidebar-menu-text">Peran</span>
                         </a>
                     </li>
                 </ul>
@@ -1150,7 +1150,7 @@
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-user"></i>
                             </span>
-                            <span class="sidebar-menu-text">Profile</span>
+                            <span class="sidebar-menu-text">Profil</span>
                         </a>
                     </li>
                     <li class="sidebar-menu-item" data-title="Logout">
@@ -1159,7 +1159,7 @@
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-sign-out-alt"></i>
                             </span>
-                            <span class="sidebar-menu-text">Logout</span>
+                            <span class="sidebar-menu-text">Keluar</span>
                         </a>
                     </li>
                 </ul>
@@ -1262,14 +1262,6 @@
                 @yield('content')
             </div>
 
-            <!-- Footer -->
-            <footer class="sticky-footer">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; Performance Management System 2025</span>
-                    </div>
-                </div>
-            </footer>
         </main>
     </div>
 
