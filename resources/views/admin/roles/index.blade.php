@@ -6,9 +6,9 @@
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Roles Management</h1>
-        <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
+        {{-- <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Add New Role
-        </a>
+        </a> --}}
     </div>
 
     <div class="card shadow mb-4">
@@ -22,8 +22,8 @@
                         <tr>
                             <th>Name</th>
                             <th>Users Count</th>
-                            <th>Created At</th>
-                            <th>Actions</th>
+                            {{-- <th>Created At</th> --}}
+                            {{-- <th>Actions</th> --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -35,8 +35,8 @@
                                 </span>
                             </td>
                             <td>{{ $role->users()->count() }}</td>
-                            <td>{{ $role->created_at->format('d M Y') }}</td>
-                            <td>
+                            {{-- <td>{{ $role->created_at->format('d M Y') }}</td> --}}
+                            {{-- <td>
                                 <a href="{{ route('admin.roles.edit', $role) }}" class="btn btn-info btn-sm">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -47,7 +47,7 @@
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
-                            </td>
+                            </td> --}}
                         </tr>
                         @endforeach
                     </tbody>

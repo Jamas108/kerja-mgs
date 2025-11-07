@@ -1301,6 +1301,14 @@
                             <span class="sidebar-menu-text">Anggota Tim</span>
                         </a>
                     </li>
+                    <li class="sidebar-menu-item" data-title="Profile">
+                        <a href="{{route ('head_division.achievements-member.index')}}" class="sidebar-menu-link">
+                            <span class="sidebar-menu-icon">
+                                <i class="fas fa-certificate"></i>
+                            </span>
+                            <span class="sidebar-menu-text">Penghargaan Karyawan</span>
+                        </a>
+                    </li>
                 </ul>
 
                 <hr class="sidebar-divider">
@@ -1340,7 +1348,7 @@
                 <p class="sidebar-menu-header">Pengaturan</p>
                 <ul class="sidebar-menu-items">
                     <li class="sidebar-menu-item" data-title="Profil">
-                        <a href="#" class="sidebar-menu-link">
+                        <a href="{{ route('head_division.head_division_profile.index') }}" class="sidebar-menu-link">
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-user"></i>
                             </span>

@@ -848,15 +848,15 @@
                 <p class="sidebar-menu-header">Pengaturan</p>
                 <ul class="sidebar-menu-items">
                     <li class="sidebar-menu-item" data-title="Profil">
-                        <a href="{{route ('director.signatures.index')}}" class="sidebar-menu-link">
+                        <a href="{{route ('director.signatures.index')}}" class="sidebar-menu-link {{ request()->routeIs('director.signatures.*') ? 'active' : '' }}">
                             <span class="sidebar-menu-icon">
-                                <i class="fas fa-user"></i>
+                                <i class="fas fa-signature"></i>
                             </span>
-                            <span class="sidebar-menu-text">Profil</span>
+                            <span class="sidebar-menu-text">Tanda Tangan</span>
                         </a>
                     </li>
                     <li class="sidebar-menu-item" data-title="Profil">
-                        <a href="#" class="sidebar-menu-link">
+                        <a href="{{ route('director.director_profile.index') }}" class="sidebar-menu-link">
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-user"></i>
                             </span>
@@ -864,7 +864,7 @@
                         </a>
                     </li>
                     <li class="sidebar-menu-item" data-title="Keluar">
-                        <a href="{{ route('logout') }}" class="sidebar-menu-link"
+                        <a href="{{ route('logout') }}" class="sidebar-menu-link "
                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-sign-out-alt"></i>

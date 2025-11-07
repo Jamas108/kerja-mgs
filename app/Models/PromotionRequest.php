@@ -18,6 +18,7 @@ class PromotionRequest extends Model
         'director_notes',
         'certificate_file',
         'reviewed_at',
+        'period',
     ];
 
     protected $casts = [
@@ -46,10 +47,18 @@ class PromotionRequest extends Model
     public function getStatusBadgeAttribute()
     {
         return match($this->status) {
-            'pending' => '<span class="badge bg-warning">Menunggu Persetujuan</span>',
-            'approved' => '<span class="badge bg-success">Disetujui</span>',
-            'rejected' => '<span class="badge bg-danger">Ditolak</span>',
+            'pending' => '<span class="badge bg-warning">Pending Approval</span>',
+            'approved' => '<span class="badge bg-success">Approved</span>',
+            'rejected' => '<span class="badge bg-danger">Rejected</span>',
             default => '<span class="badge bg-secondary">Unknown</span>',
         };
+    }
+
+    /**
+     * Get formatted period (e.g., "January 2024 - August 2024")
+     */
+    public function getFormattedPeriodAttribute()
+    {
+        return $this->period;
     }
 }

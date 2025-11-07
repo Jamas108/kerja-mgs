@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\HeadDivision;
 
 use App\Http\Controllers\Controller;
@@ -19,13 +20,13 @@ class EmployeePerformanceController extends Controller
 
         // Dapatkan semua karyawan dalam divisi
         $employees = User::where('division_id', $divisionId)
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
-            ->withCount(['assignedJobs as total_assignments' => function($query) {
+            ->withCount(['assignedJobs as total_assignments' => function ($query) {
                 $query->whereIn('status', ['final', 'kadiv_approved', 'in_review_director']);
             }])
-            ->withCount(['assignedJobs as completed_assignments' => function($query) {
+            ->withCount(['assignedJobs as completed_assignments' => function ($query) {
                 $query->where('status', 'final');
             }])
             ->get();
@@ -76,7 +77,7 @@ class EmployeePerformanceController extends Controller
 
         $employee = User::where('id', $id)
             ->where('division_id', $divisionId) // Pastikan karyawan berada di divisi yang sama
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
             ->firstOrFail();
@@ -134,7 +135,7 @@ class EmployeePerformanceController extends Controller
 
         $employee = User::where('id', $id)
             ->where('division_id', $divisionId)
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
             ->firstOrFail();
@@ -145,8 +146,15 @@ class EmployeePerformanceController extends Controller
     public function storePromotion(Request $request, $id)
     {
         $request->validate([
-            'reason' => 'required|string|min:50',
+            'period_start' => 'required|date',
+            'period_end' => 'required|date|after_or_equal:period_start',
+            'reason' => 'required|string',
             'supporting_document' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+        ], [
+            'period_start.required' => 'Periode awal harus diisi',
+            'period_end.required' => 'Periode akhir harus diisi',
+            'period_end.after_or_equal' => 'Periode akhir harus sama atau setelah periode awal',
+            'reason.required' => 'Alasan pengajuan promosi harus diisi',
         ]);
 
         $user = Auth::user();
@@ -154,7 +162,7 @@ class EmployeePerformanceController extends Controller
 
         $employee = User::where('id', $id)
             ->where('division_id', $divisionId)
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
             ->firstOrFail();
@@ -169,9 +177,17 @@ class EmployeePerformanceController extends Controller
                 ->with('error', 'Sudah ada pengajuan promosi yang menunggu persetujuan untuk karyawan ini.');
         }
 
+        // Format periode dari input date menjadi string yang mudah dibaca
+        $periodStart = \Carbon\Carbon::parse($request->period_start);
+        $periodEnd = \Carbon\Carbon::parse($request->period_end);
+
+        // Format: "January 2024 - August 2024"
+        $period = $periodStart->format('F Y') . ' - ' . $periodEnd->format('F Y');
+
         $promotionRequest = new PromotionRequest();
         $promotionRequest->employee_id = $employee->id;
         $promotionRequest->requested_by = $user->id;
+        $promotionRequest->period = $period;
         $promotionRequest->reason = $request->reason;
 
         // Handle file upload
@@ -187,14 +203,13 @@ class EmployeePerformanceController extends Controller
         return redirect()->route('head_division.performances.show', $employee->id)
             ->with('success', 'Pengajuan promosi berhasil diajukan dan menunggu persetujuan direktur.');
     }
-
     public function compare(Request $request)
     {
         $user = Auth::user();
         $divisionId = $user->division_id;
 
         $employees = User::where('division_id', $divisionId)
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
             ->get();
@@ -231,13 +246,13 @@ class EmployeePerformanceController extends Controller
 
         // Data untuk laporan divisi
         $totalEmployees = User::where('division_id', $divisionId)
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
             ->count();
 
         $allEmployees = User::where('division_id', $divisionId)
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
             ->get();
@@ -274,13 +289,13 @@ class EmployeePerformanceController extends Controller
 
         // Get promotion statistics
         $promotionStats = [
-            'pending' => PromotionRequest::whereHas('employee', function($query) use ($divisionId) {
+            'pending' => PromotionRequest::whereHas('employee', function ($query) use ($divisionId) {
                 $query->where('division_id', $divisionId);
             })->where('status', 'pending')->count(),
-            'approved' => PromotionRequest::whereHas('employee', function($query) use ($divisionId) {
+            'approved' => PromotionRequest::whereHas('employee', function ($query) use ($divisionId) {
                 $query->where('division_id', $divisionId);
             })->where('status', 'approved')->count(),
-            'rejected' => PromotionRequest::whereHas('employee', function($query) use ($divisionId) {
+            'rejected' => PromotionRequest::whereHas('employee', function ($query) use ($divisionId) {
                 $query->where('division_id', $divisionId);
             })->where('status', 'rejected')->count(),
         ];
@@ -339,9 +354,9 @@ class EmployeePerformanceController extends Controller
 
     private function getDivisionMonthlyPerformance($divisionId)
     {
-        $monthlyData = EmployeeJobDesk::whereHas('jobDesk', function($query) use ($divisionId) {
-                $query->where('division_id', $divisionId);
-            })
+        $monthlyData = EmployeeJobDesk::whereHas('jobDesk', function ($query) use ($divisionId) {
+            $query->where('division_id', $divisionId);
+        })
             ->where('status', 'final')
             ->select(
                 DB::raw('MONTH(director_reviewed_at) as month'),

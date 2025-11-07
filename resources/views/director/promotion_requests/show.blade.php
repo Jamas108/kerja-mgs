@@ -14,73 +14,66 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Employee Information -->
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <h5>Informasi Karyawan</h5>
-                                <table class="table table-bordered">
-                                    <tr>
-                                        <th width="30%">Nama</th>
-                                        <td>{{ $employee->name }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Email</th>
-                                        <td>{{ $employee->email }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Divisi</th>
-                                        <td>{{ $employee->division->name }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Nilai Kinerja</th>
-                                        <td>
-                                            @if ($performanceScore)
-                                                <span
-                                                    class="badge
-                                                @if ($performanceScore >= 3.7) bg-success
-                                                @elseif($performanceScore >= 3) bg-info
-                                                @elseif($performanceScore >= 2.5) bg-primary
-                                                @elseif($performanceScore >= 2) bg-warning
-                                                @else bg-danger @endif
-                                                ">{{ $performanceScore }}
-                                                    - {{ $performanceCategory }}</span>
-                                            @else
-                                                <span class="badge bg-secondary">Belum Ada Penilaian</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                </table>
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Informasi Karyawan</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <th width="40%">Nama</th>
+                                                <td>{{ $promotionRequest->employee->name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Email</th>
+                                                <td>{{ $promotionRequest->employee->email }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Divisi</th>
+                                                <td>{{ $promotionRequest->employee->division->name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Periode Penilaian</th>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-calendar-alt me-1"></i>
+                                                        {{ $promotionRequest->period ?? '-' }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <h5>Detail Pengajuan</h5>
-                                <table class="table table-bordered">
-                                    <tr>
-                                        <th width="30%">Diajukan Oleh</th>
-                                        <td>{{ $promotionRequest->requester->name }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Tanggal Pengajuan</th>
-                                        <td>{{ $promotionRequest->created_at->format('d M Y H:i') }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Status</th>
-                                        <td>{!! $promotionRequest->status_badge !!}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Dokumen Pendukung</th>
-                                        <td>
-                                            @if ($promotionRequest->supporting_document)
-                                                <a href="{{ Storage::url($promotionRequest->supporting_document) }}"
-                                                    target="_blank" class="btn btn-sm btn-info">
-                                                    <i class="fas fa-file-download"></i> Lihat Dokumen</a>
-                                            @else
-                                                <span class="text-muted">Tidak ada dokumen</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                </table>
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Informasi Pengajuan</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <th width="40%">Diajukan Oleh</th>
+                                                <td>{{ $promotionRequest->requester->name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Tanggal Pengajuan</th>
+                                                <td>{{ $promotionRequest->created_at->format('d M Y H:i') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Status</th>
+                                                <td>{!! $promotionRequest->status_badge !!}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
+                        <!-- Promotion Reason -->
                         <div class="row mb-4">
                             <div class="col-md-12">
                                 <div class="card">
@@ -88,89 +81,46 @@
                                         <h6 class="mb-0">Alasan Pengajuan Promosi</h6>
                                     </div>
                                     <div class="card-body">
-                                        <p>{{ $promotionRequest->reason }}</p>
+                                        <p class="text-justify">{{ $promotionRequest->reason }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Performance Chart -->
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <div class="card">
-                                    <div class="card-header bg-info text-white">
-                                        <h5 class="mb-0">Grafik Kinerja Bulanan</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="performanceChart" height="100"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Assignments -->
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <div class="card">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="mb-0">Tugas Terbaru</h5>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive">
-                                            <table class="table table-striped mb-0">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Tugas</th>
-                                                        <th>Tanggal Selesai</th>
-                                                        <th>Penilaian Kadiv</th>
-                                                        <th>Penilaian Direktur</th>
-                                                        <th>Rata-rata</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @forelse ($recentAssignments as $assignment)
-                                                        <tr>
-                                                            <td>{{ $assignment->jobDesk->title }}</td>
-                                                            <td>{{ $assignment->completed_at ? $assignment->completed_at->format('d M Y') : '-' }}
-                                                            </td>
-                                                            <td>
-                                                                @if ($assignment->kadiv_rating)
-                                                                    <span
-                                                                        class="badge bg-primary">{{ $assignment->kadiv_rating }}</span>
-                                                                @else
-                                                                    -
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                @if ($assignment->director_rating)
-                                                                    <span
-                                                                        class="badge bg-primary">{{ $assignment->director_rating }}</span>
-                                                                @else
-                                                                    -
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                @if ($assignment->average_rating)
-                                                                    <span
-                                                                        class="badge {{ $assignment->performance_badge_color }}">{{ number_format($assignment->average_rating, 2) }}</span>
-                                                                @else
-                                                                    -
-                                                                @endif
-                                                            </td>
-                                                        </tr>
-                                                    @empty
-                                                        <tr>
-                                                            <td colspan="5" class="text-center py-3">Tidak ada tugas yang
-                                                                sudah dinilai</td>
-                                                        </tr>
-                                                    @endforelse
-                                                </tbody>
-                                            </table>
+                        <!-- Supporting Document -->
+                        @if ($promotionRequest->supporting_document)
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">Dokumen Pendukung</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <a href="{{ Storage::url($promotionRequest->supporting_document) }}"
+                                                target="_blank" class="btn btn-info">
+                                                <i class="fas fa-file-download"></i> Unduh Dokumen
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
+
+                        <!-- Performance Chart (jika ada data) -->
+                        @if (isset($monthlyPerformance) && count($monthlyPerformance) > 0)
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">Grafik Performa Karyawan</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="performanceChart" style="max-height: 300px;"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Approval/Rejection Section -->
                         @if ($promotionRequest->status == 'pending')
@@ -190,27 +140,63 @@
                                                         <div class="card-body">
                                                             <form
                                                                 action="{{ route('director.promotion_requests.approve', $promotionRequest) }}"
-                                                                method="POST" enctype="multipart/form-data">
+                                                                method="POST">
                                                                 @csrf
                                                                 <div class="mb-3">
                                                                     <label for="notes" class="form-label">Catatan
                                                                         (opsional)</label>
                                                                     <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
                                                                 </div>
-                                                                <div class="mb-3">
-                                                                    <label for="certificate_file" class="form-label">Unggah
-                                                                        Sertifikat Penghargaan <span
-                                                                            class="text-danger">*</span></label>
-                                                                    <input type="file"
-                                                                        class="form-control @error('certificate_file') is-invalid @enderror"
-                                                                        id="certificate_file" name="certificate_file"
-                                                                        required>
-                                                                    <small class="form-text text-muted">Format: PDF, DOC,
-                                                                        DOCX, JPG, JPEG, PNG (Maks: 2MB)</small>
-                                                                    @error('certificate_file')
-                                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                                    @enderror
+
+                                                                <!-- Signature Selection -->
+                                                                <div class="mb-4">
+                                                                    <label for="signature_id" class="form-label">Pilih Tanda
+                                                                        Tangan <span class="text-danger">*</span></label>
+                                                                    <div class="row">
+                                                                        @foreach ($activeSignatures as $signature)
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <div
+                                                                                    class="card h-100 signature-card {{ $signature->user_id == Auth::id() ? 'border-primary' : '' }}">
+                                                                                    <div class="card-body text-center">
+                                                                                        <img src="{{ $signature->image_url }}"
+                                                                                            alt="Tanda Tangan {{ $signature->title }}"
+                                                                                            class="img-thumbnail mb-2"
+                                                                                            style="max-height: 80px;">
+                                                                                        <div class="form-check">
+                                                                                            <input
+                                                                                                class="form-check-input signature-radio"
+                                                                                                type="radio"
+                                                                                                name="signature_id"
+                                                                                                id="signature_{{ $signature->id }}"
+                                                                                                value="{{ $signature->id }}"
+                                                                                                data-promotion-id="{{ $promotionRequest->id }}"
+                                                                                                {{ $signature->user_id == Auth::id() ? 'checked' : '' }}>
+                                                                                            <label class="form-check-label"
+                                                                                                for="signature_{{ $signature->id }}">
+                                                                                                {{ $signature->title }}
+                                                                                            </label>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endforeach
+                                                                    </div>
                                                                 </div>
+
+                                                                <!-- Certificate Preview -->
+                                                                <div class="mb-3">
+                                                                    <div class="d-flex justify-content-between">
+                                                                        <label class="form-label">Preview
+                                                                            Sertifikat:</label>
+                                                                        <button type="button"
+                                                                            class="btn btn-sm btn-primary preview-certificate">
+                                                                            <i class="fas fa-eye"></i> Lihat Preview
+                                                                        </button>
+                                                                    </div>
+                                                                    <small class="form-text text-muted">Sertifikat akan
+                                                                        digenerate otomatis saat promosi disetujui.</small>
+                                                                </div>
+
                                                                 <button type="submit" class="btn btn-success w-100">
                                                                     <i class="fas fa-check-circle"></i> Setujui Promosi
                                                                 </button>
@@ -230,7 +216,8 @@
                                                                 @csrf
                                                                 <div class="mb-3">
                                                                     <label for="notes" class="form-label">Alasan
-                                                                        Penolakan <span class="text-danger">*</span></label>
+                                                                        Penolakan <span
+                                                                            class="text-danger">*</span></label>
                                                                     <textarea class="form-control @error('notes') is-invalid @enderror" id="notes" name="notes" rows="3"
                                                                         required></textarea>
                                                                     @error('notes')
@@ -246,6 +233,33 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Certificate Preview Modal -->
+                            <div class="modal fade" id="previewCertificateModal" tabindex="-1"
+                                aria-labelledby="previewCertificateModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-xl">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="previewCertificateModalLabel">Preview Sertifikat
+                                                Promosi</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body" id="certificate-preview">
+                                            <div class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p>Memuat preview sertifikat...</p>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Tutup</button>
                                         </div>
                                     </div>
                                 </div>
@@ -275,8 +289,8 @@
                                                 <hr>
                                                 <div class="text-center">
                                                     <h6>Sertifikat Penghargaan</h6>
-                                                    <a href="{{ Storage::url($promotionRequest->certificate_file) }}"
-                                                        target="_blank" class="btn btn-primary mt-2">
+                                                    <a href="{{ route('director.promotion_requests.download_certificate', $promotionRequest) }}"
+                                                        class="btn btn-primary mt-2">
                                                         <i class="fas fa-file-download"></i> Unduh Sertifikat
                                                     </a>
                                                 </div>
@@ -296,74 +310,79 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                const monthlyPerformance = @json($monthlyPerformance);
+                const monthlyPerformance = @json($monthlyPerformance ?? []);
 
-                if (monthlyPerformance.length > 0) {
-                    const labels = monthlyPerformance.map(item => item.period);
-                    const scoreData = monthlyPerformance.map(item => item.average_score);
-                    const taskData = monthlyPerformance.map(item => item.total_tasks);
-
-                    const ctx = document.getElementById('performanceChart').getContext('2d');
-                    const chart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                    label: 'Nilai Rata-rata',
-                                    data: scoreData,
-                                    borderColor: 'rgba(54, 162, 235, 1)',
-                                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                    yAxisID: 'y',
-                                    tension: 0.3
-                                },
-                                {
-                                    label: 'Jumlah Tugas',
-                                    data: taskData,
-                                    borderColor: 'rgba(255, 99, 132, 1)',
-                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                    yAxisID: 'y1',
-                                    type: 'bar'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false,
+                // Chart JS code for performance visualization
+                if (monthlyPerformance && monthlyPerformance.length > 0) {
+                    const ctx = document.getElementById('performanceChart');
+                    if (ctx) {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: monthlyPerformance.map(item => item.period),
+                                datasets: [{
+                                    label: 'Performance Score',
+                                    data: monthlyPerformance.map(item => item.average_score),
+                                    borderColor: 'rgb(75, 192, 192)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    tension: 0.1
+                                }]
                             },
-                            scales: {
-                                y: {
-                                    type: 'linear',
-                                    display: true,
-                                    position: 'left',
-                                    title: {
-                                        display: true,
-                                        text: 'Nilai Kinerja'
-                                    },
-                                    min: 0,
-                                    max: 4
-                                },
-                                y1: {
-                                    type: 'linear',
-                                    display: true,
-                                    position: 'right',
-                                    grid: {
-                                        drawOnChartArea: false,
-                                    },
-                                    title: {
-                                        display: true,
-                                        text: 'Jumlah Tugas'
-                                    },
-                                    min: 0
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        max: 4
+                                    }
                                 }
                             }
+                        });
+                    }
+                }
+
+                // Certificate preview functionality
+                $('.preview-certificate').on('click', function(e) {
+                    e.preventDefault();
+
+                    const selectedSignature = $('input[name="signature_id"]:checked');
+                    if (selectedSignature.length === 0) {
+                        alert('Silakan pilih tanda tangan terlebih dahulu');
+                        return;
+                    }
+
+                    const signatureId = selectedSignature.val();
+                    const promotionId = selectedSignature.data('promotion-id');
+
+                    // Show the modal
+                    $('#previewCertificateModal').modal('show');
+
+                    // Load certificate preview
+                    $.ajax({
+                        url: '{{ route('director.promotion_requests.preview-certificate') }}',
+                        type: 'POST',
+                        data: {
+                            promotion_request_id: promotionId,
+                            signature_id: signatureId,
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            $('#certificate-preview').html(response);
+                        },
+                        error: function() {
+                            $('#certificate-preview').html(
+                                '<div class="alert alert-danger text-center">Gagal memuat preview sertifikat</div>'
+                            );
                         }
                     });
-                } else {
-                    document.getElementById('performanceChart').parentNode.innerHTML =
-                        '<div class="text-center py-5"><p class="text-muted">Data tidak tersedia</p></div>';
-                }
+                });
+
+                // Style selected signature card
+                $('.signature-radio').on('change', function() {
+                    $('.signature-card').removeClass('border-primary');
+                    $(this).closest('.signature-card').addClass('border-primary');
+                });
             });
         </script>
     @endpush

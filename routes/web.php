@@ -12,12 +12,18 @@ use App\Http\Controllers\HeadDivision\DashboardController as HeadDivisionDashboa
 use App\Http\Controllers\HeadDivision\JobDeskController;
 use App\Http\Controllers\HeadDivision\ReviewController as HeadDivisionReviewController;
 use App\Http\Controllers\Director\DashboardController as DirectorDashboardController;
+use App\Http\Controllers\Director\DirectorProfileController;
 use App\Http\Controllers\Director\PromotionRequestsController;
 use App\Http\Controllers\Director\ReviewController as DirectorReviewController;
 use App\Http\Controllers\Director\SignatureController as DirectorSignatureController;
+use App\Http\Controllers\Employee\AchievementController;
+use App\Http\Controllers\HeadDivision\AchievementMemberController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
+use App\Http\Controllers\Employee\EmployeeProfileController;
 use App\Http\Controllers\Employee\TaskController;
 use App\Http\Controllers\HeadDivision\EmployeePerformanceController;
+use App\Http\Controllers\HeadDivision\HeadDivisionProfileController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -62,6 +68,11 @@ Route::prefix('head-division')->name('head_division.')->middleware(['auth', 'rol
     Route::get('/team-members', [App\Http\Controllers\HeadDivision\TeamMembersController::class, 'index'])->name('team_members.index');
     Route::get('/team-members/{member}', [App\Http\Controllers\HeadDivision\TeamMembersController::class, 'show'])->name('team_members.show');
 
+    // Achievements
+    Route::get('/achievements-member', [AchievementMemberController::class, 'index'])->name('achievements-member.index');
+    Route::get('/achievements-member/{achievement}', [AchievementMemberController::class, 'show'])->name('achievements-member.show');
+    Route::get('/achievements-member/{achievement}/download', [AchievementMemberController::class, 'download'])->name('achievements-member.download');
+
     // Job Desk Management
     Route::resource('job_desks', JobDeskController::class);
 
@@ -85,6 +96,11 @@ Route::prefix('head-division')->name('head_division.')->middleware(['auth', 'rol
         ->name('performances.propose_promotion');
     Route::post('/performances/{employee}/propose-promotion', [EmployeePerformanceController::class, 'storePromotion'])
         ->name('performances.store_promotion');
+
+    Route::get('/head_division_profile', [HeadDivisionProfileController::class, 'index'])->name('head_division_profile.index');
+    Route::get('/head_division_profile/edit', [HeadDivisionProfileController::class, 'edit'])->name('head_division_profile.edit');
+    Route::put('/head_division_profile/update', [HeadDivisionProfileController::class, 'update'])->name('head_division_profile.update');
+    Route::put('/head_division_profile/password/update', [HeadDivisionProfileController::class, 'updatePassword'])->name('head_division_profile.password.update');
 });
 
 // Director Routes
@@ -100,17 +116,22 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'role:direktur
     Route::get('/promotion-requests/{promotionRequest}', [PromotionRequestsController::class, 'show'])->name('promotion_requests.show');
     Route::post('/promotion-requests/{promotionRequest}/approve', [PromotionRequestsController::class, 'approve'])->name('promotion_requests.approve');
     Route::post('/promotion-requests/{promotionRequest}/reject', [PromotionRequestsController::class, 'reject'])->name('promotion_requests.reject');
-    Route::get('promotion-requests/{promotionRequest}/download-certificate', 'App\Http\Controllers\Director\PromotionRequestsController@downloadCertificate')
+
+    // Fixed route - corrected naming convention to match what's used in the view
+    Route::get('/promotion-requests/{promotionRequest}/download-certificate', [PromotionRequestsController::class, 'downloadCertificate'])
         ->name('promotion_requests.download_certificate');
 
-    Route::get('/signatures', [DirectorSignatureController::class, 'index'])->name('signatures.index');
-    Route::post('/signatures', [DirectorSignatureController::class, 'store'])->name('signatures.store');
+    // Fixed preview certificate route
+    Route::post('/promotion-requests/preview-certificate', [PromotionRequestsController::class, 'previewCertificate'])
+        ->name('promotion_requests.preview-certificate');
 
-    // Route::resource('signatures', SignatureController::class)
-    //     ->except(['show', 'create']);
+    Route::resource('signatures', DirectorSignatureController::class)->except(['show', 'create']);
+    Route::patch('/signatures/{signature}/toggle-active', [DirectorSignatureController::class, 'toggleActive'])->name('signatures.toggle-active');
 
-    Route::patch('signatures/{signature}/toggle-active', 'App\Http\Controllers\Admin\SignatureController@toggleActive')
-        ->name('signatures.toggle-active');
+    Route::get('/director_profile', [DirectorProfileController::class, 'index'])->name('director_profile.index');
+    Route::get('/director_profile/edit', [DirectorProfileController::class, 'edit'])->name('director_profile.edit');
+    Route::put('/director_profile/update', [DirectorProfileController::class, 'update'])->name('director_profile.update');
+    Route::put('/director_profile/password/update', [DirectorProfileController::class, 'updatePassword'])->name('director_profile.password.update');
 });
 
 // Employee Routes
@@ -121,7 +142,25 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'role:karyawan
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks/{assignment}', [TaskController::class, 'show'])->name('tasks.show');
     Route::post('/tasks/{assignment}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
+
+    // Achievements/Certificates
+    Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
+    Route::get('/achievements/{achievement}', [AchievementController::class, 'show'])->name('achievements.show');
+    Route::get('/achievements/{achievement}/download', [AchievementController::class, 'download'])->name('achievements.download');
+
+    Route::get('/employee_profile', [EmployeeProfileController::class, 'index'])->name('employee_profile.index');
+    Route::get('/employee_profile/edit', [EmployeeProfileController::class, 'edit'])->name('employee_profile.edit');
+    Route::put('/employee_profile/update', [EmployeeProfileController::class, 'update'])->name('employee_profile.update');
+    Route::put('/employee_profile/password/update', [EmployeeProfileController::class, 'updatePassword'])->name('employee_profile.password.update');
 });
+
+// Route::middleware(['auth'])->group(function () {
+//     // Profile Routes
+//     Route::get('/head_division_profile', [ProfileController::class, 'index'])->name('head_division_profile.index');
+//     Route::get('/head_division_profile/edit', [ProfileController::class, 'edit'])->name('head_division_profile.edit');
+//     Route::put('/head_division_profile/update', [ProfileController::class, 'update'])->name('head_division_profile.update');
+//     Route::put('/head_division_profile/password/update', [ProfileController::class, 'updatePassword'])->name('head_division_profile.password.update');
+// });
 
 // File Display Route
 Route::get('/evidence/{filename}', function ($filename) {

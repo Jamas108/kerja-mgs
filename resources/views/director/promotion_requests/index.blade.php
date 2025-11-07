@@ -24,6 +24,7 @@
                                     <tr>
                                         <th>Karyawan</th>
                                         <th>Divisi</th>
+                                        <th>Periode</th>
                                         <th>Diajukan Oleh</th>
                                         <th>Tanggal Pengajuan</th>
                                         <th>Aksi</th>
@@ -34,6 +35,12 @@
                                     <tr>
                                         <td>{{ $request->employee->name }}</td>
                                         <td>{{ $request->employee->division->name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                {{ $request->period ?? '-' }}
+                                            </span>
+                                        </td>
                                         <td>{{ $request->requester->name }}</td>
                                         <td>{{ $request->created_at->format('d M Y H:i') }}</td>
                                         <td>
@@ -68,6 +75,7 @@
                                     <tr>
                                         <th>Karyawan</th>
                                         <th>Divisi</th>
+                                        <th>Periode</th>
                                         <th>Status</th>
                                         <th>Tanggal Diproses</th>
                                         <th>Aksi</th>
@@ -78,6 +86,12 @@
                                     <tr>
                                         <td>{{ $request->employee->name }}</td>
                                         <td>{{ $request->employee->division->name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                {{ $request->period ?? '-' }}
+                                            </span>
+                                        </td>
                                         <td>{!! $request->status_badge !!}</td>
                                         <td>{{ $request->reviewed_at ? $request->reviewed_at->format('d M Y H:i') : '-' }}</td>
                                         <td>

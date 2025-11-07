@@ -5,22 +5,160 @@ namespace App\Http\Controllers\Director;
 use App\Http\Controllers\Controller;
 use App\Models\PromotionRequest;
 use App\Models\EmployeeJobDesk;
-use App\Models\User;
 use App\Models\Signature;
-use App\Services\CertificateService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PromotionRequestsController extends Controller
 {
-    protected $certificateService;
-
-    public function __construct(CertificateService $certificateService)
+    public function approve(Request $request, PromotionRequest $promotionRequest)
     {
-        $this->certificateService = $certificateService;
+        $request->validate([
+            'notes' => 'nullable|string',
+            'signature_id' => 'required|exists:signatures,id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Pastikan signature milik user yang sedang login
+            $signature = Signature::where('id', $request->signature_id)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+
+            Log::info("Starting certificate generation for promotion request #{$promotionRequest->id}");
+            $startTime = microtime(true);
+
+            // Generate PDF dengan data signature
+            $pdf = PDF::loadView('templates.promotion_certificate', [
+                'certificateNumber' => 'PROM/' . date('Y') . '/' . str_pad($promotionRequest->id, 4, '0', STR_PAD_LEFT),
+                'employeeName' => strtoupper($promotionRequest->employee->name),
+                'employeePosition' => $promotionRequest->employee->position ?? '-',
+                'divisionName' => $promotionRequest->employee->division->name ?? '-',
+                'yearsOfService' => $promotionRequest->period ?? 'Periode penilaian terkini',
+                'currentDate' => now()->isoFormat('D MMMM YYYY'),
+                'signatureImageUrl' => $this->getSignatureUrl($signature),
+                'directorName' => Auth::user()->name,
+                'directorTitle' => Auth::user()->position ?? 'Direktur',
+            ])->setPaper('a4', 'landscape')->setWarnings(false);
+
+            // Save PDF
+            $filename = 'certificates/promotion_' . $promotionRequest->id . '_' . time() . '.pdf';
+            Storage::disk('public')->put($filename, $pdf->output());
+
+            $duration = round(microtime(true) - $startTime, 2);
+            Log::info("Certificate generated in {$duration} seconds");
+
+            // Update promotion request
+            $promotionRequest->update([
+                'status' => 'approved',
+                'director_notes' => $request->notes,
+                'certificate_file' => $filename,
+                'reviewed_at' => now()
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('director.promotion_requests.index')
+                ->with('success', "Pengajuan promosi berhasil disetujui. Sertifikat telah digenerate dalam {$duration} detik.");
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Certificate generation failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
+
+    public function previewCertificate(Request $request)
+    {
+        $request->validate([
+            'promotion_request_id' => 'required|exists:promotion_requests,id',
+            'signature_id' => 'required|exists:signatures,id'
+        ]);
+
+        try {
+            $promotionRequest = PromotionRequest::findOrFail($request->promotion_request_id);
+
+            // Pastikan signature milik user yang sedang login
+            $signature = Signature::where('id', $request->signature_id)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+
+            $employee = $promotionRequest->employee;
+
+            // Prepare data untuk preview
+            $data = [
+                'certificateNumber' => 'PROM/' . date('Y') . '/' . str_pad($promotionRequest->id, 4, '0', STR_PAD_LEFT),
+                'employeeName' => strtoupper($employee->name),
+                'employeePosition' => $employee->position ?? '-',
+                'divisionName' => $employee->division->name ?? '-',
+                'yearsOfService' => $promotionRequest->period ?? 'Periode penilaian terkini',
+                'currentDate' => $this->getCurrentDate(),
+                'signatureImageUrl' => $this->getSignatureUrl($signature),
+                'directorName' => Auth::user()->name,
+                'directorTitle' => Auth::user()->position ?? 'Direktur',
+            ];
+
+            // Return view langsung (HTML preview)
+            return view('templates.promotion_certificate', $data);
+
+        } catch (\Exception $e) {
+            Log::error('Preview generation failed: ' . $e->getMessage());
+
+            return response()
+                ->json(['error' => 'Gagal memuat preview: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // ========================================
+    // HELPER METHODS
+    // ========================================
+
+    /**
+     * Get formatted current date in Indonesian
+     */
+    private function getCurrentDate()
+    {
+        $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        $day = date('d');
+        $month = $months[(int)date('m')];
+        $year = date('Y');
+
+        return "$day $month $year";
+    }
+
+    /**
+     * Get signature URL/path untuk PDF
+     */
+    private function getSignatureUrl($signature)
+    {
+        // Ambil dari kolom image_path (sesuai dengan SignatureController)
+        $imagePath = $signature->image_path;
+
+        // Jika sudah full URL, return langsung
+        if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
+            return $imagePath;
+        }
+
+        // Jika path storage, convert ke public path untuk PDF
+        if (Storage::disk('public')->exists($imagePath)) {
+            return public_path('storage/' . $imagePath);
+        }
+
+        // Fallback
+        return public_path($imagePath);
+    }
+
+    // ========================================
+    // METHODS LAINNYA (TETAP SAMA)
+    // ========================================
 
     public function index()
     {
@@ -41,25 +179,19 @@ class PromotionRequestsController extends Controller
     public function show(PromotionRequest $promotionRequest)
     {
         $employee = $promotionRequest->employee;
-
-        // Get employee performance data
         $performanceScore = $this->calculateOverallPerformance($employee->id);
         $performanceCategory = $performanceScore ? $this->getPerformanceCategory($performanceScore) : 'Belum Ada Penilaian';
-
-        // Get recent assignments
         $recentAssignments = EmployeeJobDesk::where('employee_id', $employee->id)
             ->where('status', 'final')
             ->with('jobDesk')
             ->latest('director_reviewed_at')
             ->take(5)
             ->get();
-
-        // Monthly performance
         $monthlyPerformance = $this->getMonthlyPerformance($employee->id);
 
-        // Get active signatures for preview
-        $activeSignatures = Signature::active()
-            ->directors()
+        // Ambil signature milik user yang sedang login
+        $activeSignatures = Signature::where('user_id', Auth::id())
+            ->where('is_active', true)
             ->with('user')
             ->get();
 
@@ -74,60 +206,20 @@ class PromotionRequestsController extends Controller
         ));
     }
 
-    public function approve(Request $request, PromotionRequest $promotionRequest)
-    {
-        $request->validate([
-            'notes' => 'nullable|string',
-            'signature_id' => 'required|exists:signatures,id'
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // Get the selected signature
-            $signature = Signature::findOrFail($request->signature_id);
-
-            // Generate certificate PDF with selected signature
-            $certificatePath = $this->certificateService->generatePromotionCertificateWithSignature(
-                $promotionRequest,
-                $signature
-            );
-
-            if (!$certificatePath) {
-                throw new \Exception('Gagal menghasilkan sertifikat. Silakan coba lagi.');
-            }
-
-            // Update promotion request
-            $promotionRequest->status = 'approved';
-            $promotionRequest->director_notes = $request->notes;
-            $promotionRequest->certificate_file = $certificatePath;
-            $promotionRequest->reviewed_at = now();
-            $promotionRequest->save();
-
-            DB::commit();
-
-            return redirect()->route('director.promotion_requests.index')
-                ->with('success', 'Pengajuan promosi berhasil disetujui. Sertifikat telah digenerate otomatis.');
-        } catch (\Exception $e) {
-            DB::rollback();
-
-            return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
     public function reject(Request $request, PromotionRequest $promotionRequest)
     {
         $request->validate([
             'notes' => 'required|string|min:10',
         ]);
 
-        $promotionRequest->status = 'rejected';
-        $promotionRequest->director_notes = $request->notes;
-        $promotionRequest->reviewed_at = now();
-        $promotionRequest->save();
+        $promotionRequest->update([
+            'status' => 'rejected',
+            'director_notes' => $request->notes,
+            'reviewed_at' => now()
+        ]);
 
-        return redirect()->route('director.promotion_requests.index')
+        return redirect()
+            ->route('director.promotion_requests.index')
             ->with('success', 'Pengajuan promosi telah ditolak.');
     }
 
@@ -147,36 +239,18 @@ class PromotionRequestsController extends Controller
         return redirect()->back()->with('error', 'File sertifikat tidak ditemukan.');
     }
 
-    public function previewCertificate(Request $request)
-    {
-        $request->validate([
-            'promotion_request_id' => 'required|exists:promotion_requests,id',
-            'signature_id' => 'required|exists:signatures,id'
-        ]);
-
-        $promotionRequest = PromotionRequest::findOrFail($request->promotion_request_id);
-        $signature = Signature::findOrFail($request->signature_id);
-
-        // Generate certificate HTML preview
-        $certificateHtml = $this->certificateService->generateCertificateHtmlPreview($promotionRequest, $signature);
-
-        return response($certificateHtml);
-    }
-
     private function calculateOverallPerformance($employeeId)
     {
         $completedAssignments = EmployeeJobDesk::where('employee_id', $employeeId)
             ->where('status', 'final')
             ->get();
 
-        $totalScore = 0;
         $totalRatedAssignments = $completedAssignments->count();
 
         if ($totalRatedAssignments > 0) {
-            foreach ($completedAssignments as $assignment) {
-                $avgRating = ($assignment->kadiv_rating + $assignment->director_rating) / 2;
-                $totalScore += $avgRating;
-            }
+            $totalScore = $completedAssignments->sum(function($assignment) {
+                return ($assignment->kadiv_rating + $assignment->director_rating) / 2;
+            });
 
             return round($totalScore / $totalRatedAssignments, 2);
         }
@@ -186,17 +260,11 @@ class PromotionRequestsController extends Controller
 
     private function getPerformanceCategory($score)
     {
-        if ($score >= 3.7) {
-            return 'Sangat Baik';
-        } else if ($score >= 3) {
-            return 'Baik';
-        } else if ($score >= 2.5) {
-            return 'Cukup';
-        } else if ($score >= 2) {
-            return 'Kurang';
-        } else {
-            return 'Sangat Kurang';
-        }
+        if ($score >= 3.7) return 'Sangat Baik';
+        if ($score >= 3) return 'Baik';
+        if ($score >= 2.5) return 'Cukup';
+        if ($score >= 2) return 'Kurang';
+        return 'Sangat Kurang';
     }
 
     private function getMonthlyPerformance($employeeId)
@@ -214,17 +282,13 @@ class PromotionRequestsController extends Controller
             ->orderBy('month')
             ->get();
 
-        $formattedData = [];
-
-        foreach ($monthlyData as $data) {
+        return $monthlyData->map(function($data) {
             $monthName = date('F', mktime(0, 0, 0, $data->month, 1));
-            $formattedData[] = [
+            return [
                 'period' => $monthName . ' ' . $data->year,
                 'average_score' => round($data->avg_score, 2),
                 'total_tasks' => $data->total_tasks
             ];
-        }
-
-        return $formattedData;
+        })->toArray();
     }
 }

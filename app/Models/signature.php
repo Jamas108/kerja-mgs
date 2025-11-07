@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Signature extends Model
 {
@@ -18,7 +19,6 @@ class Signature extends Model
         'user_id',
         'title',
         'image_path',
-        'signature_data',
         'is_active',
     ];
 
@@ -72,10 +72,10 @@ class Signature extends Model
      */
     public function getImageUrlAttribute()
     {
-        if ($this->signature_data) {
-            return $this->signature_data;
+        if ($this->image_path && Storage::disk('public')->exists($this->image_path)) {
+            return asset('storage/' . $this->image_path);
         }
 
-        return asset('storage/' . $this->image_path);
+        return asset('images/no-signature.png'); // placeholder jika tidak ada
     }
 }

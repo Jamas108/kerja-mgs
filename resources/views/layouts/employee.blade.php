@@ -1314,7 +1314,15 @@
                 <p class="sidebar-menu-header">Settings</p>
                 <ul class="sidebar-menu-items">
                     <li class="sidebar-menu-item" data-title="Profile">
-                        <a href="#" class="sidebar-menu-link">
+                        <a href="{{route ('employee.achievements.index')}}" class="sidebar-menu-link">
+                            <span class="sidebar-menu-icon">
+                                <i class="fas fa-certificate"></i>
+                            </span>
+                            <span class="sidebar-menu-text">Penghargaan</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-menu-item" data-title="Profile">
+                        <a href="{{ route('employee.employee_profile.index') }}" class="sidebar-menu-link">
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-user"></i>
                             </span>

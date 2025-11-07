@@ -21,7 +21,7 @@ class TeamMembersController extends Controller
         $user = Auth::user();
         $divisionId = $user->division_id;
 
-        // Get all employees in the division with performance metrics
+        // Dapatkan semua karyawan dalam divisi dengan metrik kinerja
         $teamMembers = User::where('division_id', $divisionId)
             ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
@@ -37,11 +37,11 @@ class TeamMembersController extends Controller
             }])
             ->get();
 
-        // Calculate performance scores for each team member
+        // Hitung skor kinerja untuk setiap anggota tim
         foreach ($teamMembers as $member) {
-            // Performance score is already calculated via the accessor in the User model
+            // Skor kinerja sudah dihitung melalui accessor di model User
 
-            // Get latest award if exists
+            // Dapatkan penghargaan terbaru jika ada
             $latestAward = PromotionRequest::where('employee_id', $member->id)
                 ->where('status', 'approved')
                 ->orderBy('reviewed_at', 'desc')
@@ -50,7 +50,7 @@ class TeamMembersController extends Controller
             $member->latest_award = $latestAward;
         }
 
-        // Get division stats
+        // Dapatkan statistik divisi
         $stats = [
             'total_members' => $teamMembers->count(),
             'total_awards' => $teamMembers->sum('approved_promotions'),
@@ -75,28 +75,32 @@ class TeamMembersController extends Controller
         $user = Auth::user();
         $divisionId = $user->division_id;
 
-        // Find the team member and ensure they belong to the same division
+        // Cari anggota tim dan pastikan mereka berada dalam divisi yang sama
         $teamMember = User::where('id', $id)
             ->where('division_id', $divisionId)
             ->whereHas('role', function ($query) {
                 $query->where('name', 'karyawan');
             })
+            ->withCount(['promotionRequests as awards_count' => function ($query) {
+                $query->where('status', 'approved');
+            }])
             ->firstOrFail();
 
-        // Get awards (approved promotions)
+        // Dapatkan penghargaan (promosi yang disetujui)
         $awards = PromotionRequest::where('employee_id', $teamMember->id)
             ->where('status', 'approved')
             ->with('requester')
             ->orderBy('reviewed_at', 'desc')
             ->get();
 
-        // Get performance history
+        // Dapatkan riwayat kinerja
         $performanceHistory = $this->getMonthlyPerformance($teamMember->id);
 
-        // Get recent assignments
+        // Dapatkan tugas terbaru yang sudah selesai
         $recentAssignments = $teamMember->assignedJobs()
             ->with('jobDesk')
             ->where('status', 'final')
+            ->whereNotNull('director_reviewed_at') // Pastikan ada tanggal review
             ->orderBy('director_reviewed_at', 'desc')
             ->take(5)
             ->get();
@@ -117,31 +121,47 @@ class TeamMembersController extends Controller
      */
     private function getMonthlyPerformance($employeeId)
     {
-        $monthlyData = DB::table('employee_job_desks')
-            ->where('employee_id', $employeeId)
-            ->where('status', 'final')
-            ->select(
-                DB::raw('MONTH(director_reviewed_at) as month'),
-                DB::raw('YEAR(director_reviewed_at) as year'),
-                DB::raw('AVG((kadiv_rating + director_rating) / 2) as avg_score'),
-                DB::raw('COUNT(*) as total_tasks')
-            )
-            ->groupBy('year', 'month')
-            ->orderBy('year')
-            ->orderBy('month')
-            ->get();
+        try {
+            $monthlyData = DB::table('employee_job_desks')
+                ->where('employee_id', $employeeId)
+                ->where('status', 'final')
+                ->whereNotNull('director_reviewed_at') // Pastikan ada tanggal review
+                ->whereNotNull('kadiv_rating') // Pastikan ada rating kadiv
+                ->whereNotNull('director_rating') // Pastikan ada rating direktur
+                ->select(
+                    DB::raw('MONTH(director_reviewed_at) as month'),
+                    DB::raw('YEAR(director_reviewed_at) as year'),
+                    DB::raw('AVG((kadiv_rating + director_rating) / 2) as avg_score'),
+                    DB::raw('COUNT(*) as total_tasks')
+                )
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
+                ->get();
 
-        $formattedData = [];
+            $formattedData = [];
 
-        foreach ($monthlyData as $data) {
-            $monthName = date('F', mktime(0, 0, 0, $data->month, 1));
-            $formattedData[] = [
-                'period' => $monthName . ' ' . $data->year,
-                'average_score' => round($data->avg_score, 2),
-                'total_tasks' => $data->total_tasks
+            // Mapping nama bulan dalam Bahasa Indonesia
+            $monthNames = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
             ];
-        }
 
-        return $formattedData;
+            foreach ($monthlyData as $data) {
+                $monthName = $monthNames[$data->month] ?? 'Unknown';
+                $formattedData[] = [
+                    'period' => $monthName . ' ' . $data->year,
+                    'average_score' => round($data->avg_score, 2),
+                    'total_tasks' => (int) $data->total_tasks
+                ];
+            }
+
+            return $formattedData;
+        } catch (\Exception $e) {
+            // Log error jika diperlukan
+            \Log::error('Error getting monthly performance: ' . $e->getMessage());
+            return [];
+        }
     }
 }

@@ -89,6 +89,30 @@
                     @csrf
 
                     <div class="mb-4">
+                        <label for="period" class="form-label fw-bold">Periode Penilaian</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="period_start" class="form-label text-muted small">Dari Bulan</label>
+                                <input type="month" id="period_start" name="period_start" class="form-control @error('period_start') is-invalid @enderror" value="{{ old('period_start') }}" required>
+                                @error('period_start')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label for="period_end" class="form-label text-muted small">Sampai Bulan</label>
+                                <input type="month" id="period_end" name="period_end" class="form-control @error('period_end') is-invalid @enderror" value="{{ old('period_end') }}" required>
+                                @error('period_end')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-calendar-alt text-primary me-1"></i>
+                            Pilih periode penilaian kinerja untuk promosi ini (contoh: Januari 2024 - Agustus 2024)
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
                         <label for="reason" class="form-label fw-bold">Alasan Pengajuan Promosi</label>
                         <textarea id="reason" name="reason" rows="6" class="form-control @error('reason') is-invalid @enderror" required>{{ old('reason') }}</textarea>
                         <div class="form-text">
