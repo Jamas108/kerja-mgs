@@ -313,11 +313,18 @@
                                     <td data-label="Aksi">
                                         <div class="d-flex justify-content-end gap-2 action-buttons">
                                             <a href="{{ route('head_division.job_desks.edit', $jobDesk) }}" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-edit me-1"></i> Edit
+                                                <i class="fas fa-edit me-1"></i>
                                             </a>
                                             <a href="{{ route('head_division.job_desks.edit', $jobDesk) }}" class="btn btn-sm btn-secondary">
-                                                <i class="fas fa-eye me-1"></i> Lihat
+                                                <i class="fas fa-eye me-1"></i> 
                                             </a>
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="confirmDelete('{{ $jobDesk->id }}', '{{ $jobDesk->title }}')"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                title="Hapus tugas ini">
+                                                <i class="fas fa-trash me-1"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -398,6 +405,13 @@
                                                 <a href="{{ route('head_division.job_desks.edit', $jobDesk) }}" class="btn btn-sm btn-secondary">
                                                     <i class="fas fa-eye me-1"></i> Lihat
                                                 </a>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete('{{ $jobDesk->id }}', '{{ $jobDesk->title }}')"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    title="Hapus tugas ini">
+                                                    <i class="fas fa-trash me-1"></i> Hapus
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -473,9 +487,16 @@
                                         </td>
                                         <td data-label="Aksi">
                                             <div class="d-flex justify-content-end gap-2 action-buttons">
-                                                <a href="#" class="btn btn-sm btn-primary">
+                                                <a href="{{ route('head_division.job_desks.edit', $jobDesk) }}" class="btn btn-sm btn-primary">
                                                     <i class="fas fa-eye me-1"></i> Lihat
                                                 </a>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete('{{ $jobDesk->id }}', '{{ $jobDesk->title }}')"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    title="Hapus tugas ini">
+                                                    <i class="fas fa-trash me-1"></i> Hapus
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -544,6 +565,13 @@
                                                 <a href="#" class="btn btn-sm btn-success">
                                                     <i class="fas fa-user-plus me-1"></i> Tugaskan
                                                 </a>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete('{{ $jobDesk->id }}', '{{ $jobDesk->title }}')"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    title="Hapus tugas ini">
+                                                    <i class="fas fa-trash me-1"></i> Hapus
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -566,6 +594,44 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Hapus
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="alert alert-warning d-flex align-items-center mb-0" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <div>
+                            <strong>Peringatan!</strong> Tindakan ini tidak dapat dibatalkan.
+                        </div>
+                    </div>
+                </div>
+                <p>Apakah Anda yakin ingin menghapus tugas: <strong id="taskTitle"></strong>?</p>
+                <p class="text-muted small">Semua data terkait tugas ini akan dihapus secara permanen, termasuk assignee dan progress yang telah dibuat.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Batal
+                </button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Hapus Tugas
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -639,6 +705,20 @@
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
     });
+
+    // Fungsi konfirmasi hapus
+    function confirmDelete(jobDeskId, jobDeskTitle) {
+        // Set judul tugas di modal
+        document.getElementById('taskTitle').textContent = jobDeskTitle;
+
+        // Set action form untuk menghapus
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = "{{ route('head_division.job_desks.index') }}" + "/" + jobDeskId;
+
+        // Tampilkan modal
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        deleteModal.show();
+    }
 </script>
 @endpush
 @endsection

@@ -63,7 +63,7 @@
                                 </div>
                             @enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 mt-2">
                             <label for="password_confirmation" class="form-label">Konfirmasi Password</label>
                             <input type="password" class="form-control" id="password_confirmation"
                                 name="password_confirmation" placeholder="Masukan Ulang Password" required>

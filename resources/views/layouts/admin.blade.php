@@ -1,6 +1,7 @@
 <!-- resources/views/layouts/admin.blade.php -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -147,10 +148,11 @@
 
         .sidebar-menu {
             padding: 20px 0;
+
         }
 
         .sidebar-menu-header {
-            padding: 10px 24px;
+            padding-left: 24px;
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1.2px;
@@ -168,11 +170,11 @@
         .sidebar-menu-items {
             list-style: none;
             padding: 0;
-            margin: 0;
+            margin-top: -10px
         }
 
         .sidebar-menu-item {
-            margin: 6px 12px;
+            margin-left: 12px;
             border-radius: 12px;
             transition: all var(--transition-speed) ease;
             position: relative;
@@ -581,7 +583,7 @@
             box-shadow: var(--shadow-sm);
             border: none;
             transition: all var(--transition-speed) ease;
-            height: 100%;
+            height: auto;
         }
 
         .card:hover {
@@ -1098,7 +1100,6 @@
             </div>
 
             <div class="sidebar-menu">
-                <p class="sidebar-menu-header">Main Menu</p>
                 <ul class="sidebar-menu-items">
                     <li class="sidebar-menu-item" data-title="Dashboard">
                         <a href="{{ route('admin.dashboard') }}"
@@ -1109,7 +1110,12 @@
                             <span class="sidebar-menu-text">Dashboard</span>
                         </a>
                     </li>
+                </ul>
 
+                <hr class="sidebar-divider">
+                <p class="sidebar-menu-header">Master</p>
+
+                <ul class="sidebar-menu-items">
                     <li class="sidebar-menu-item" data-title="Users">
                         <a href="{{ route('admin.users.index') }}"
                             class="sidebar-menu-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
@@ -1139,14 +1145,46 @@
                             <span class="sidebar-menu-text">Peran</span>
                         </a>
                     </li>
+
+                    <li class="sidebar-menu-item" data-title="Roles">
+                        <a href="{{ route('admin.manage_job_desks.index') }}"
+                            class="sidebar-menu-link {{ request()->routeIs('admin.manage_job_desks.*') ? 'active' : '' }}">
+                            <span class="sidebar-menu-icon">
+                                <i class="fas fa-clipboard-list"></i>
+                            </span>
+                            <span class="sidebar-menu-text">Tugas</span>
+                        </a>
+                    </li>
+
+                    <hr class="sidebar-divider">
+                    <p class="sidebar-menu-header">Pekerjaan</p>
+
+                    <li class="sidebar-menu-item" data-title="Tinjauan">
+                        <a href="{{route ('admin.reviews.index')}}" class="sidebar-menu-link {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}">
+                            <span class="sidebar-menu-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </span>
+                            <span class="sidebar-menu-text">Tinjauan</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-menu-item">
+                        <a class="sidebar-menu-link {{ request()->routeIs('admin.performances.*') ? 'active' : '' }}" href="{{route ('admin.performances.index')}}">
+                            <span class="sidebar-menu-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </span>
+                            <span class="sidebar-menu-text">Kinerja Karyawan</span>
+                        </a>
+                    </li>
                 </ul>
 
                 <hr class="sidebar-divider">
 
-                <p class="sidebar-menu-header">Settings</p>
+                <p class="sidebar-menu-header">Pengaturan</p>
                 <ul class="sidebar-menu-items">
                     <li class="sidebar-menu-item" data-title="Profile">
-                        <a href="#" class="sidebar-menu-link">
+                        <a href="{{ route('profile.index') }}"
+                            class="sidebar-menu-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
                             <span class="sidebar-menu-icon">
                                 <i class="fas fa-user"></i>
                             </span>
@@ -1197,32 +1235,6 @@
                                 <div class="user-dropdown-name">{{ auth()->user()->name }}</div>
                                 <div class="user-dropdown-role">Administrator</div>
                             </div>
-                            <i class="fas fa-chevron-down ms-2"></i>
-                        </div>
-                        <div class="user-dropdown-menu" id="userDropdownMenu">
-                            <div class="user-dropdown-header">
-                                <div class="user-dropdown-header-avatar">
-                                    {{ substr(auth()->user()->name, 0, 1) }}
-                                </div>
-                                <div class="user-dropdown-header-info">
-                                    <div class="user-dropdown-header-name">{{ auth()->user()->name }}</div>
-                                    <div class="user-dropdown-header-email">{{ auth()->user()->email }}</div>
-                                </div>
-                            </div>
-                            <a href="#" class="user-dropdown-item">
-                                <i class="fas fa-user user-dropdown-icon"></i>
-                                My Profile
-                            </a>
-                            <a href="#" class="user-dropdown-item">
-                                <i class="fas fa-cog user-dropdown-icon"></i>
-                                Account Settings
-                            </a>
-                            <div class="user-dropdown-divider"></div>
-                            <a href="{{ route('logout') }}" class="user-dropdown-item danger"
-                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="fas fa-sign-out-alt user-dropdown-icon"></i>
-                                Logout
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -1231,31 +1243,35 @@
             <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
 
             <div class="content">
-                @if(session('success'))
+                @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                            aria-label="Close"></button>
                     </div>
                 @endif
 
-                @if(session('error'))
+                @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                            aria-label="Close"></button>
                     </div>
                 @endif
 
-                @if(session('warning'))
+                @if (session('warning'))
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-triangle me-2"></i> {{ session('warning') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                            aria-label="Close"></button>
                     </div>
                 @endif
 
-                @if(session('info'))
+                @if (session('info'))
                     <div class="alert alert-info alert-dismissible fade show" role="alert">
                         <i class="fas fa-info-circle me-2"></i> {{ session('info') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                            aria-label="Close"></button>
                     </div>
                 @endif
 
@@ -1315,7 +1331,8 @@
 
             // Close dropdown when clicking outside
             document.addEventListener('click', function(event) {
-                if (userDropdownMenu.classList.contains('show') && !userDropdownMenu.contains(event.target)) {
+                if (userDropdownMenu.classList.contains('show') && !userDropdownMenu.contains(event
+                        .target)) {
                     userDropdownMenu.classList.remove('show');
                 }
             });
@@ -1329,7 +1346,10 @@
                         searchPlaceholder: "Search...",
                     },
                     pageLength: 10,
-                    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "All"]]
+                    lengthMenu: [
+                        [5, 10, 25, 50, -1],
+                        [5, 10, 25, 50, "All"]
+                    ]
                 });
             }
 
@@ -1365,4 +1385,5 @@
 
     @stack('scripts')
 </body>
+
 </html>

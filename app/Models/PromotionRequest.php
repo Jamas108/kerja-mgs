@@ -41,12 +41,17 @@ class PromotionRequest extends Model
         return $this->belongsTo(User::class, 'requested_by');
     }
 
+    public function requestedBy() // Changed from requester() to requestedBy()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
     /**
      * Get status badge HTML
      */
     public function getStatusBadgeAttribute()
     {
-        return match($this->status) {
+        return match ($this->status) {
             'pending' => '<span class="badge bg-warning">Pending Approval</span>',
             'approved' => '<span class="badge bg-success">Approved</span>',
             'rejected' => '<span class="badge bg-danger">Rejected</span>',

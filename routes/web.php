@@ -1,6 +1,9 @@
 <?php
 // routes/web.php
 
+use App\Http\Controllers\Admin\AdminEmployeePerformanceController;
+use App\Http\Controllers\Admin\AdminManageJobdeskController;
+use App\Http\Controllers\Admin\AdminReviewController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -40,13 +43,7 @@ Auth::routes();
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-// Register middleware in App\Http\Kernel.php
-// protected $routeMiddleware = [
-//     ...
-//     'role' => \App\Http\Middleware\CheckRole::class,
-// ];
-
-// Admin Routes
+// ======================================= Admin Routes ======================================= //
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
@@ -58,9 +55,34 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     // Role Management
     Route::resource('roles', RoleController::class);
+
+    // Achievements
+    Route::get('/achievements-member', [AchievementMemberController::class, 'index'])->name('admin-achievements-member.index');
+    Route::get('/achievements-member/{achievement}', [AchievementMemberController::class, 'show'])->name('admin-achievements-member.show');
+    Route::get('/achievements-member/{achievement}/download', [AchievementMemberController::class, 'download'])->name('admin-achievements-member.download');
+
+    // Job Desk Management
+    Route::resource('manage_job_desks', AdminManageJobdeskController::class);
+
+    // Reviews
+    Route::resource('reviews', AdminReviewController::class)->except(['create', 'store', 'edit', 'update', 'destroy']);
+    Route::post('reviews/{assignment}/review', [AdminReviewController::class, 'review'])->name('reviews.review');
+    Route::post('reviews/bulk-approve', [AdminReviewController::class, 'bulkApprove'])->name('reviews.bulk-approve');
+    Route::get('reviews/statistics', [AdminReviewController::class, 'statistics'])->name('reviews.statistics');
+
+    // Performance Management - FIXED ROUTES
+    Route::prefix('performances')->name('performances.')->group(function () {
+        Route::get('/', [AdminEmployeePerformanceController::class, 'index'])->name('index');
+        Route::get('/report', [AdminEmployeePerformanceController::class, 'report'])->name('report');
+        Route::get('/compare', [AdminEmployeePerformanceController::class, 'compare'])->name('compare');
+        Route::post('/compare', [AdminEmployeePerformanceController::class, 'compare'])->name('compare.post');
+        Route::get('/{employee}/show', [AdminEmployeePerformanceController::class, 'show'])->name('show');
+        Route::get('/{employee}/propose-promotion', [AdminEmployeePerformanceController::class, 'proposePromotion'])->name('propose_promotion');
+        Route::post('/{employee}/store-promotion', [AdminEmployeePerformanceController::class, 'storePromotion'])->name('store_promotion');
+    });
 });
 
-// Head Division Routes
+// ======================================= Head Division Routes ======================================= //
 Route::prefix('head-division')->name('head_division.')->middleware(['auth', 'role:kepala divisi'])->group(function () {
     Route::get('/dashboard', [HeadDivisionDashboardController::class, 'index'])->name('dashboard');
 
@@ -103,7 +125,7 @@ Route::prefix('head-division')->name('head_division.')->middleware(['auth', 'rol
     Route::put('/head_division_profile/password/update', [HeadDivisionProfileController::class, 'updatePassword'])->name('head_division_profile.password.update');
 });
 
-// Director Routes
+// ======================================= Director Routes ======================================= //
 Route::prefix('director')->name('director.')->middleware(['auth', 'role:direktur'])->group(function () {
     Route::get('/dashboard', [DirectorDashboardController::class, 'index'])->name('dashboard');
 
@@ -134,7 +156,7 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'role:direktur
     Route::put('/director_profile/password/update', [DirectorProfileController::class, 'updatePassword'])->name('director_profile.password.update');
 });
 
-// Employee Routes
+// ======================================= Employee Routes ======================================= //
 Route::prefix('employee')->name('employee.')->middleware(['auth', 'role:karyawan'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
 
@@ -154,13 +176,13 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'role:karyawan
     Route::put('/employee_profile/password/update', [EmployeeProfileController::class, 'updatePassword'])->name('employee_profile.password.update');
 });
 
-// Route::middleware(['auth'])->group(function () {
-//     // Profile Routes
-//     Route::get('/head_division_profile', [ProfileController::class, 'index'])->name('head_division_profile.index');
-//     Route::get('/head_division_profile/edit', [ProfileController::class, 'edit'])->name('head_division_profile.edit');
-//     Route::put('/head_division_profile/update', [ProfileController::class, 'update'])->name('head_division_profile.update');
-//     Route::put('/head_division_profile/password/update', [ProfileController::class, 'updatePassword'])->name('head_division_profile.password.update');
-// });
+// ======================================= PROFILE AUTH ======================================= //
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile/photo', [ProfileController::class, 'removePhoto'])->name('profile.photo.remove');
+});
 
 // File Display Route
 Route::get('/evidence/{filename}', function ($filename) {

@@ -1,0 +1,713 @@
+@extends('layouts.admin')
+
+@section('title', 'Compare Employee Performance')
+
+@push('styles')
+<!-- DataTables CSS -->
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css" rel="stylesheet">
+
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<style>
+    /* Mobile optimizations */
+    @media (max-width: 767.98px) {
+        .page-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .page-header p {
+            font-size: 0.875rem;
+        }
+
+        .btn-sm-mobile {
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+    }
+
+    /* Chart responsive */
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    @media (max-width: 767.98px) {
+        .chart-container {
+            height: 250px;
+        }
+    }
+
+    .chart-container-horizontal {
+        position: relative;
+        height: 200px;
+    }
+
+    @media (max-width: 767.98px) {
+        .chart-container-horizontal {
+            height: 250px;
+        }
+    }
+
+    /* Select2 Responsive */
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
+    }
+
+    @media (max-width: 768px) {
+        .select2-container--bootstrap-5 .select2-selection {
+            font-size: 0.875rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+    }
+
+    /* Compare card mobile */
+    .compare-card-mobile {
+        border-left: 4px solid #4e73df;
+    }
+
+    /* Form styling */
+    .form-label {
+        margin-bottom: 0.5rem;
+        color: #344767;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #5e72e4;
+        box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25);
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: #dc3545;
+    }
+</style>
+@endpush
+
+@section('content')
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="flex-grow-1">
+                <h2 class="h3 mb-2 text-gray-800 fw-bold">Compare Employee Performance</h2>
+                <p class="text-secondary mb-0">Analyze and compare performance across all employees company-wide</p>
+            </div>
+            <div>
+                <a href="{{ route('admin.performances.index') }}" class="btn btn-secondary btn-sm-mobile">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Selection Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Select Employees to Compare</h6>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('admin.performances.compare') }}" method="post" id="compareForm">
+                @csrf
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="division_filter" class="form-label">Filter by Division</label>
+                        <select class="form-select" id="division_filter">
+                            <option value="">All Divisions</option>
+                            @foreach($divisions as $division)
+                                <option value="{{ $division->id }}">{{ $division->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Filter employees by division to narrow your selection
+                        </small>
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label for="employee_ids" class="form-label required">Select Employees to Compare</label>
+                        <select class="form-select @error('employee_ids') is-invalid @enderror"
+                                name="employee_ids[]"
+                                id="employee_ids"
+                                multiple
+                                required>
+                            @foreach($allEmployees as $employee)
+                                <option value="{{ $employee->id }}"
+                                        data-division="{{ $employee->division_id }}"
+                                        {{ in_array($employee->id, old('employee_ids', isset($selectedEmployees) ? collect($selectedEmployees)->pluck('id')->toArray() : [])) ? 'selected' : '' }}>
+                                    {{ $employee->name }} ({{ $employee->division->name ?? 'No Division' }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('employee_ids')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Select 2-8 employees for performance comparison
+                        </small>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-chart-line me-2"></i>Compare Performance
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if(!empty($selectedEmployees))
+        <!-- Overall Performance Comparison Chart -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-trophy me-2"></i>
+                            Overall Performance Comparison
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container-horizontal">
+                            <canvas id="compareOverallChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Performance Trends -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Monthly Performance Trends
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="compareMonthlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Performance Table -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-tasks me-2"></i>
+                        Detailed Employee Performance
+                    </h6>
+                    <span class="badge bg-primary">
+                        <i class="fas fa-users me-1"></i>
+                        {{ count($selectedEmployees) }} Employees
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Desktop View -->
+                <div class="table-responsive d-none d-lg-block">
+                    <table class="table table-hover" id="compare-employees-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Division</th>
+                                <th>Average Rating</th>
+                                <th>Category</th>
+                                <th>Completed Tasks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($selectedEmployees as $employee)
+                                @php
+                                    $performanceInfo = $performanceData[$employee->id] ?? null;
+                                    $overallPerformance = $performanceInfo['overall'] ?? null;
+
+                                    $badgeClass = 'bg-secondary';
+                                    $category = 'No Rating';
+
+                                    if ($overallPerformance !== null) {
+                                        if ($overallPerformance >= 3.7) {
+                                            $badgeClass = 'bg-success';
+                                            $category = 'Excellent';
+                                        } elseif ($overallPerformance >= 3) {
+                                            $badgeClass = 'bg-info';
+                                            $category = 'Good';
+                                        } elseif ($overallPerformance >= 2.5) {
+                                            $badgeClass = 'bg-primary';
+                                            $category = 'Average';
+                                        } elseif ($overallPerformance >= 2) {
+                                            $badgeClass = 'bg-warning';
+                                            $category = 'Below Average';
+                                        } else {
+                                            $badgeClass = 'bg-danger';
+                                            $category = 'Poor';
+                                        }
+                                    }
+
+                                    $totalTasks = isset($performanceInfo['monthly'])
+                                        ? collect($performanceInfo['monthly'])->sum('total_tasks')
+                                        : 0;
+                                @endphp
+                                <tr>
+                                    <td class="fw-semibold">{{ $employee->name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ $employee->division->name ?? 'No Division' }}</span>
+                                    </td>
+                                    <td>
+                                        @if ($overallPerformance !== null)
+                                            <span class="badge {{ $badgeClass }}">
+                                                {{ number_format($overallPerformance, 2) }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $badgeClass }}">{{ $category }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-clipboard-check me-1"></i>
+                                            {{ $totalTasks }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('admin.performances.show', $employee->id) }}"
+                                            class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye me-1"></i>Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile/Tablet View -->
+                <div class="d-lg-none">
+                    @foreach($selectedEmployees as $employee)
+                        @php
+                            $performanceInfo = $performanceData[$employee->id] ?? null;
+                            $overallPerformance = $performanceInfo['overall'] ?? null;
+
+                            $badgeClass = 'bg-secondary';
+                            $category = 'No Rating';
+
+                            if ($overallPerformance !== null) {
+                                if ($overallPerformance >= 3.7) {
+                                    $badgeClass = 'bg-success';
+                                    $category = 'Excellent';
+                                } elseif ($overallPerformance >= 3) {
+                                    $badgeClass = 'bg-info';
+                                    $category = 'Good';
+                                } elseif ($overallPerformance >= 2.5) {
+                                    $badgeClass = 'bg-primary';
+                                    $category = 'Average';
+                                } elseif ($overallPerformance >= 2) {
+                                    $badgeClass = 'bg-warning';
+                                    $category = 'Below Average';
+                                } else {
+                                    $badgeClass = 'bg-danger';
+                                    $category = 'Poor';
+                                }
+                            }
+
+                            $totalTasks = isset($performanceInfo['monthly'])
+                                ? collect($performanceInfo['monthly'])->sum('total_tasks')
+                                : 0;
+                        @endphp
+                        <div class="card mb-3 compare-card-mobile shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold text-primary mb-0">{{ $employee->name }}</h6>
+                                    <span class="badge bg-info">{{ $employee->division->name ?? 'No Division' }}</span>
+                                </div>
+
+                                <div class="row mb-2">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block mb-1">Average Rating</small>
+                                        @if ($overallPerformance !== null)
+                                            <span class="badge {{ $badgeClass }}">
+                                                {{ number_format($overallPerformance, 2) }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block mb-1">Completed Tasks</small>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-clipboard-check me-1"></i>
+                                            {{ $totalTasks }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <small class="text-muted d-block mb-1">Performance Category</small>
+                                    <span class="badge {{ $badgeClass }} w-100 py-2">{{ $category }}</span>
+                                </div>
+
+                                <a href="{{ route('admin.performances.show', $employee->id) }}"
+                                    class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+</div>
+
+@push('scripts')
+<!-- jQuery (required for DataTables & Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize Select2
+        $('#employee_ids').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select employees...',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "No employees found";
+                },
+                searching: function() {
+                    return "Searching...";
+                }
+            }
+        });
+
+        // Division filter functionality
+        $('#division_filter').on('change', function() {
+            const selectedDivision = $(this).val();
+            const employeeSelect = $('#employee_ids');
+
+            // Clear current selection
+            employeeSelect.val(null).trigger('change');
+
+            // Show/hide options based on division filter
+            employeeSelect.find('option').each(function() {
+                const optionDivision = $(this).data('division');
+
+                if (selectedDivision === '' || optionDivision == selectedDivision) {
+                    $(this).prop('disabled', false);
+                } else {
+                    $(this).prop('disabled', true);
+                }
+            });
+
+            // Refresh Select2
+            employeeSelect.trigger('change');
+        });
+
+        // Form validation
+        const form = document.getElementById('compareForm');
+        form.addEventListener('submit', function(event) {
+            const selectedEmployees = $('#employee_ids').val();
+
+            if (!selectedEmployees || selectedEmployees.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const employeeSelect = document.getElementById('employee_ids');
+                employeeSelect.classList.add('is-invalid');
+
+                let errorDiv = employeeSelect.parentElement.querySelector('.invalid-feedback');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback';
+                    employeeSelect.parentElement.appendChild(errorDiv);
+                }
+                errorDiv.textContent = 'Please select at least 2 employees';
+                errorDiv.style.display = 'block';
+
+                return false;
+            }
+
+            if (selectedEmployees.length < 2 || selectedEmployees.length > 8) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const employeeSelect = document.getElementById('employee_ids');
+                employeeSelect.classList.add('is-invalid');
+
+                let errorDiv = employeeSelect.parentElement.querySelector('.invalid-feedback');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback';
+                    employeeSelect.parentElement.appendChild(errorDiv);
+                }
+                errorDiv.textContent = 'Please select 2-8 employees for comparison';
+                errorDiv.style.display = 'block';
+
+                return false;
+            }
+
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        });
+
+        // Remove invalid state when user selects employees
+        $('#employee_ids').on('change', function() {
+            if ($(this).val() && $(this).val().length > 0) {
+                $(this).removeClass('is-invalid');
+                $(this).parent().find('.invalid-feedback').hide();
+            }
+        });
+
+        @if(!empty($selectedEmployees))
+        // Initialize DataTable only on desktop
+        if ($(window).width() >= 992) {
+            $('#compare-employees-table').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/English.json"
+                },
+                "responsive": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "dom": '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex"f>>t<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex"p>>',
+                "initComplete": function() {
+                    $('.dataTables_filter input').attr('placeholder', 'Search employees...');
+                    $('.dataTables_filter input').addClass('form-control');
+                    $('.dataTables_filter label').addClass('mb-0');
+                    $('.dataTables_length select').addClass('form-select form-select-sm');
+                }
+            });
+        }
+        @endif
+    });
+</script>
+
+@if(!empty($selectedEmployees))
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const isMobile = window.innerWidth < 768;
+
+        // Data for charts
+        const performanceData = @json($performanceData);
+        const employees = @json($selectedEmployees);
+
+        // Overall performance comparison chart
+        const ctxOverall = document.getElementById('compareOverallChart').getContext('2d');
+
+        const overallLabels = employees.map(employee => employee.name);
+        const overallData = employees.map(employee => {
+            const data = performanceData[employee.id];
+            return data && data.overall ? data.overall : 0;
+        });
+
+        const overallColors = employees.map(employee => {
+            const data = performanceData[employee.id];
+            const score = data && data.overall ? data.overall : 0;
+
+            if (score >= 3.7) return 'rgba(40, 167, 69, 0.8)';
+            if (score >= 3) return 'rgba(23, 162, 184, 0.8)';
+            if (score >= 2.5) return 'rgba(0, 123, 255, 0.8)';
+            if (score >= 2) return 'rgba(255, 193, 7, 0.8)';
+            return 'rgba(220, 53, 69, 0.8)';
+        });
+
+        new Chart(ctxOverall, {
+            type: 'bar',
+            data: {
+                labels: overallLabels,
+                datasets: [{
+                    label: 'Overall Performance Rating',
+                    data: overallData,
+                    backgroundColor: overallColors,
+                    borderColor: overallColors.map(color => color.replace('0.8', '1')),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 4,
+                        title: {
+                            display: !isMobile,
+                            text: 'Performance Rating'
+                        },
+                        ticks: {
+                            font: {
+                                size: isMobile ? 9 : 11
+                            }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: {
+                                size: isMobile ? 9 : 11
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Monthly performance trends
+        const ctxMonthly = document.getElementById('compareMonthlyChart').getContext('2d');
+
+        let allPeriods = [];
+        employees.forEach(employee => {
+            const data = performanceData[employee.id];
+            if (data && data.monthly) {
+                data.monthly.forEach(item => {
+                    if (!allPeriods.includes(item.period)) {
+                        allPeriods.push(item.period);
+                    }
+                });
+            }
+        });
+
+        allPeriods.sort((a, b) => {
+            const [aMonth, aYear] = a.split(' ');
+            const [bMonth, bYear] = b.split(' ');
+            const months = ["January", "February", "March", "April", "May", "June",
+                           "July", "August", "September", "October", "November", "December"];
+
+            if (aYear !== bYear) {
+                return parseInt(aYear) - parseInt(bYear);
+            }
+            return months.indexOf(aMonth) - months.indexOf(bMonth);
+        });
+
+        const monthlyDatasets = [];
+        const colors = [
+            'rgb(75, 192, 192)',
+            'rgb(255, 99, 132)',
+            'rgb(255, 205, 86)',
+            'rgb(54, 162, 235)',
+            'rgb(153, 102, 255)',
+            'rgb(255, 159, 64)',
+            'rgb(199, 199, 199)',
+            'rgb(83, 102, 255)'
+        ];
+
+        employees.forEach((employee, index) => {
+            const data = performanceData[employee.id];
+            let monthlyData = [];
+
+            if (data && data.monthly) {
+                monthlyData = allPeriods.map(period => {
+                    const found = data.monthly.find(item => item.period === period);
+                    return found ? found.average_score : null;
+                });
+            }
+
+            monthlyDatasets.push({
+                label: employee.name,
+                data: monthlyData,
+                borderColor: colors[index % colors.length],
+                backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                tension: 0.3,
+                fill: false,
+                borderWidth: 3
+            });
+        });
+
+        new Chart(ctxMonthly, {
+            type: 'line',
+            data: {
+                labels: allPeriods,
+                datasets: monthlyDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 1,
+                        max: 4,
+                        title: {
+                            display: !isMobile,
+                            text: 'Performance Rating'
+                        },
+                        ticks: {
+                            font: {
+                                size: isMobile ? 9 : 11
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: isMobile ? 9 : 11
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: isMobile ? 'bottom' : 'top',
+                        labels: {
+                            font: {
+                                size: isMobile ? 10 : 12
+                            },
+                            padding: isMobile ? 10 : 15
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+@endif
+@endpush
+@endsection

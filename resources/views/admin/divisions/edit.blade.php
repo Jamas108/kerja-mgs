@@ -7,9 +7,6 @@
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Edit Division</h1>
         <div>
-            <a href="{{ route('admin.divisions.show', $division) }}" class="btn btn-info">
-                <i class="fas fa-eye"></i> View Details
-            </a>
             <a href="{{ route('admin.divisions.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Divisions
             </a>

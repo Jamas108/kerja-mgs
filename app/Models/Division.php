@@ -27,7 +27,7 @@ class Division extends Model
     public function divisionHead()
     {
         return $this->users()
-            ->whereHas('role', function($query) {
+            ->whereHas('role', function ($query) {
                 $query->where('name', 'kepala divisi');
             })
             ->first();
@@ -38,10 +38,13 @@ class Division extends Model
      */
     public function employees()
     {
-        return $this->users()
-            ->whereHas('role', function($query) {
-                $query->where('name', 'karyawan');
-            })
-            ->get();
+        return $this->hasMany(User::class)->whereHas('role', function($query) {
+            $query->where('name', 'karyawan');
+        });
+    }
+
+    public function getEmployeesAttribute()
+    {
+        return $this->employees()->get();
     }
 }
