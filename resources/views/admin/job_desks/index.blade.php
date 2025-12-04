@@ -337,7 +337,7 @@
                                                         class="btn btn-sm btn-primary">
                                                         <i class="fas fa-edit me-1"></i>
                                                     </a>
-                                                    <a href="{{ route('admin.manage_job_desks.edit', $jobDesk) }}"
+                                                    <a href="{{ route('admin.manage_job_desks.show', $jobDesk) }}"
                                                         class="btn btn-sm btn-secondary">
                                                         <i class="fas fa-eye me-1"></i>
                                                     </a>
